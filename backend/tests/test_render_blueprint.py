@@ -56,3 +56,28 @@ def test_no_competing_deployment_config():
     assert not (REPO / "frontend" / "vercel.json").exists(), (
         "vercel.json is not read by Render. Its contents belong in render.yaml."
     )
+
+
+GUIDE = REPO / "DEPLOYMENT.md"
+
+
+def test_guide_does_not_send_the_operator_to_vercel():
+    """The guide is followed literally by someone who is not a developer.
+
+    A leftover Vercel step does not read as stale documentation to them -- it
+    reads as a required account they must go and create.
+    """
+    lines = [
+        f"  line {n}: {line.strip()}"
+        for n, line in enumerate(GUIDE.read_text(encoding="utf-8").splitlines(), 1)
+        if "vercel" in line.lower()
+    ]
+    assert not lines, "DEPLOYMENT.md still references Vercel:\n" + "\n".join(lines)
+
+
+def test_guide_names_the_deploy_repository():
+    text = GUIDE.read_text(encoding="utf-8")
+    assert "Furqan-10/NewHaulCheck" in text
+    assert "Furqan-10/OUR-Haul" not in text, (
+        "OUR-Haul is not the deploy repository. Render builds from NewHaulCheck."
+    )

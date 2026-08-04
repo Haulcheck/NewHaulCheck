@@ -17,10 +17,10 @@ see [CLIENT_SETUP.md](CLIENT_SETUP.md) instead.
 ```
 Browser
    │
-   ├──► Vercel  ·  the web app  ·  haulcheck.vercel.app
+   ├──► Render  ·  the web app  ·  haulcheck.co.uk
    │       └─ REACT_APP_BACKEND_URL ──┐
    │                                  ▼
-   └──────────────────────► Render  ·  the API  ·  haulcheck-api.onrender.com
+   └──────────────────────► Render  ·  the API  ·  api.haulcheck.co.uk
                                   ├──► MongoDB Atlas   the database
                                   ├──► Cloudflare R2   uploaded photos and PDFs
                                   └──► Resend          reminder and alert email
@@ -28,7 +28,7 @@ Browser
    cron-job.org ──► POST /api/tasks/run-reminders  ·  daily 07:00 UTC
 ```
 
-Five services. Each has a free tier that this app fits inside.
+Four services. Each has a free tier that this app fits inside.
 
 | Service | Free tier | What happens when you outgrow it |
 |---|---|---|
@@ -36,7 +36,7 @@ Five services. Each has a free tier that this app fits inside.
 | **MongoDB Atlas** — the database | 512 MB (M0) | ~$9/month for 2 GB |
 | **Cloudflare R2** — files | 10 GB, no charge to serve | $0.015/GB/month after |
 | **Resend** — email | 3,000/month, 100/day | $20/month for 50,000 |
-| **Vercel** — the web app | Free (non-commercial only, see below) | $20/month Pro |
+| **Render** — the web app | Free static site on a global CDN | Included in the same plan |
 
 **Budget 45–60 minutes.** Most of it is waiting for accounts to verify.
 
@@ -44,19 +44,18 @@ Five services. Each has a free tier that this app fits inside.
 
 ## Before you start
 
-Create these five accounts. Use the client's own email — these hold their data,
+Create these four accounts. Use the client's own email — these hold their data,
 and you want them to own it.
 
 1. **MongoDB Atlas** — <https://www.mongodb.com/cloud/atlas/register>
 2. **Cloudflare** — <https://dash.cloudflare.com/sign-up>
 3. **Resend** — <https://resend.com/signup>
 4. **Render** — <https://dashboard.render.com/register> (sign in with GitHub)
-5. **Vercel** — <https://vercel.com/signup> (sign in with GitHub)
 
 Plus **cron-job.org** (<https://console.cron-job.org/signup>) at the end.
 
 You also need the code on GitHub. It already is:
-`https://github.com/Furqan-10/OUR-Haul`.
+`https://github.com/Furqan-10/NewHaulCheck`.
 
 Keep a scratch file open. You will collect six values as you go, and step 4
 needs all of them at once.
@@ -136,8 +135,10 @@ audit packs.
 ## Step 4 — The API
 
 1. Render dashboard → **New** → **Blueprint**.
-2. Connect the `Furqan-10/OUR-Haul` repository. Render reads
-   [`render.yaml`](render.yaml) and proposes a service called `haulcheck-api`.
+2. Connect the `Furqan-10/NewHaulCheck` repository. Render reads
+   [`render.yaml`](render.yaml) and proposes **two** services: `haulcheck-api`
+   and `haulcheck-web`. Both come from the one file — the web app is set up in
+   step 5, not separately.
 3. It will ask for the values marked `sync: false`. Fill in:
 
    | Variable | Value |
@@ -149,7 +150,7 @@ audit packs.
    | `S3_SECRET_KEY` | from step 2 |
    | `RESEND_API_KEY` | from step 3 |
    | `SENDER_EMAIL` | from step 3 |
-   | `CORS_ORIGINS` | `https://haulcheck.vercel.app` — a placeholder for now, corrected in step 6 |
+   | `CORS_ORIGINS` | `https://haulcheck-web.onrender.com` — a placeholder for now, corrected in step 6 |
 
    Everything else is already set in `render.yaml`. `JWT_SECRET` and
    `CRON_SECRET` are generated for you; do not invent your own.
@@ -183,11 +184,13 @@ is the free tier, not a fault.
 
 ## Step 5 — The web app
 
-1. Vercel → **Add New** → **Project** → import `Furqan-10/OUR-Haul`.
-2. **Root Directory**: `frontend` — this matters; the repository root is not
-   the app.
-3. Vercel reads [`frontend/vercel.json`](frontend/vercel.json) for the rest.
-4. **Environment Variables** → add:
+The blueprint in step 4 already created this alongside the API — Render reads
+both services from the same `render.yaml`, including the build command, the
+security headers and the rewrite that makes React Router's deep links work. This
+step only fills in its one variable.
+
+1. Render dashboard → `haulcheck-web` → **Environment**.
+2. Add:
 
    | Name | Value |
    |---|---|
@@ -196,27 +199,27 @@ is the free tier, not a fault.
    **No trailing slash, and no `/api`** — the app appends that itself. A
    trailing `/api` produces requests to `/api/api/...` and every call 404s.
 
-5. **Deploy.**
+3. **Manual Deploy** → **Deploy latest commit**.
 
-**Write down:** the Vercel URL, e.g. `https://haulcheck.vercel.app`
+**Write down:** the web app URL, e.g. `https://haulcheck-web.onrender.com`
 
 > This value is compiled into the JavaScript at build time, not read when the
-> page loads. Changing it later means redeploying the frontend, not just
-> editing the variable.
+> page loads. Changing it later means redeploying the web app, not just editing
+> the variable. You will change it once more in step 9, when the domain is live.
 
 ---
 
 ## Step 6 — Connect the two
 
 The API refuses requests from origins it does not know. Right now it does not
-know your Vercel URL.
+know your web app URL.
 
 1. Render → `haulcheck-api` → **Environment**.
-2. Set `CORS_ORIGINS` to the exact Vercel URL from step 5 — scheme included, no
+2. Set `CORS_ORIGINS` to the exact web app URL from step 5 — scheme included, no
    trailing slash:
 
    ```
-   https://haulcheck.vercel.app
+   https://haulcheck-web.onrender.com
    ```
 
 3. Save. Render redeploys automatically.
@@ -227,10 +230,10 @@ know your Vercel URL.
 > origin asked, which is every origin, with cookies attached. Failing at startup
 > is the safe version of that mistake.
 
-> **Vercel preview deployments will not work**, and that is deliberate. Each
-> preview gets its own URL, and this list also validates OAuth redirects.
-> Allowing `*.vercel.app` would let any Vercel user's project call your API with
-> credentials. Test on the production URL.
+> **Render preview environments will not work** against this API, and that is
+> deliberate. Each preview gets its own URL, and this list also validates OAuth
+> redirect URIs. Widening it to a wildcard would let any subdomain call a
+> credentialed API. Test on the real URL.
 
 ---
 
@@ -271,7 +274,9 @@ the stack, so where it stops tells you what is broken.
 
 - [ ] `https://<render-url>/api/health` returns JSON.
       Check `"storage": "s3"` — `"null"` means the R2 variables did not take.
-- [ ] The Vercel URL loads the login page.
+- [ ] The web app URL loads the login page.
+- [ ] Open a deep link directly, e.g. `<web-url>/maintenance`, and hard-refresh
+      it. *(The SPA rewrite. Without it this 404s while the root still works.)*
 - [ ] Register an account. *(API, database write, password policy — minimum 12
       characters.)*
 - [ ] Sign in. *(Token issue and verify.)*
@@ -312,13 +317,11 @@ HTTP timeout and the whole suite fails at once.
 
 Worth knowing before a demo, so nothing is a surprise in front of the client.
 
-- **50-second first load.** Render stops the instance after 15 minutes idle. The
-  Vercel frontend stays up, so the login page appears instantly and then waits
-  on the API. Before any live demo, open the app a minute early — or move to the
-  $7/month plan, where this stops happening.
-- **Vercel's free plan is non-commercial** under their terms. Fine for testing.
-  A product the client charges for needs Pro (~$20/month), or move the frontend
-  to Cloudflare Pages or Netlify.
+- **50-second first load.** Render stops the API after 15 minutes idle. The web
+  app is a static site on the CDN and never sleeps, so the login page appears
+  instantly and then waits on the API. Before any live demo, open the app a
+  minute early — or move to the $7/month plan, where this stops happening.
+  Only the API has this behaviour; static sites are always on.
 - **Atlas M0 is 512 MB.** Uploaded files go to R2, not the database, so this
   holds a lot of fleet records — but it does not grow, and there are no
   automated backups on M0.
@@ -327,32 +330,76 @@ Worth knowing before a demo, so nothing is a surprise in front of the client.
 
 ---
 
-## When the domain arrives
+## Step 9 — The domain
 
-Doing this fixes Google sign-in, which is switched off until then.
+The domain is `haulcheck.co.uk`, registered at Fasthosts. DNS is managed there
+too — the nameservers are `ns1.livedns.co.uk`, `ns2` and `ns3`.
 
-1. **Vercel** → project → **Settings** → **Domains** → add `app.example.com`.
-   Follow the DNS records it gives you.
-2. **Render** → service → **Settings** → **Custom Domain** → add
-   `api.example.com`. Follow its DNS records.
-3. **Render environment** → set `CORS_ORIGINS` to `https://app.example.com`.
-4. **Vercel environment** → set `REACT_APP_BACKEND_URL` to
-   `https://api.example.com`, then **redeploy the frontend** — the old value is
-   baked into the current build.
-5. **Turn on Google sign-in:**
-   - Google Cloud Console → **APIs & Services** → **Credentials** → **Create
-     OAuth client ID** → **Web application**.
-   - Authorised redirect URI, exactly: `https://app.example.com/auth/google/callback`
-   - Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` on Render.
-   - The button appears on the login page by itself. It stays hidden while those
-     two are unset.
-6. Optional: set the canonical URL in `frontend/public/index.html`, fill in
-   `sitemap.xml`, and uncomment the `Sitemap:` line in `robots.txt`.
+It currently points at the old Emergent deployment. This step moves it, and it
+is the only step the public can see.
 
-> **Why Google sign-in waits for the domain.** It relies on a session cookie
-> marked `SameSite=None`, which Safari and other privacy-focused browsers block
-> between two unrelated domains — `vercel.app` and `onrender.com` are unrelated.
-> Under one domain the cookie is same-site and every browser accepts it.
+**A day before:** Fasthosts control panel → DNS → lower the TTL on the existing
+records to 300 seconds. Propagation is governed by the *old* TTL, so this has to
+be done ahead of the change, not during it. Skip it and a mistake takes hours to
+undo instead of minutes.
+
+**Record the current values before changing anything** — this is the rollback:
+
+| Record | Type | Current value |
+|---|---|---|
+| `@` | A | `162.159.142.117` |
+| `@` | A | `172.66.2.113` |
+| `www` | CNAME | `haulcheck.co.uk` |
+
+1. **Render** → `haulcheck-api` → **Settings** → **Custom Domain** → add
+   `api.haulcheck.co.uk`.
+2. **Fasthosts** → add `api` as a CNAME to `haulcheck-api.onrender.com`. Wait
+   for Render to mark the domain verified, then confirm
+   `https://api.haulcheck.co.uk/api/health` answers before going further.
+3. **Render** → `haulcheck-web` → **Custom Domain** → add both
+   `haulcheck.co.uk` and `www.haulcheck.co.uk`.
+4. **Fasthosts** — now the visible change, all three together:
+   - Delete **both** apex `A` records above. Add one `A` record on `@` pointing
+     to `216.24.57.1`.
+   - Change `www` from a CNAME to the apex into a CNAME to
+     `haulcheck-web.onrender.com`.
+   - Delete any `AAAA` records. Render is IPv4-only, and a stray `AAAA` produces
+     a site that works for you and intermittently fails for other people —
+     which is the hardest kind of fault to be told about.
+5. **Render** → `haulcheck-api` → set `CORS_ORIGINS` to `https://haulcheck.co.uk`.
+6. **Render** → `haulcheck-web` → set `REACT_APP_BACKEND_URL` to
+   `https://api.haulcheck.co.uk`, then **Manual Deploy**. The old value is
+   compiled into the current bundle; saving the variable alone changes nothing.
+7. TLS is automatic. Render issues and renews the certificates and redirects
+   HTTP to HTTPS. No action, no cost.
+
+> **Why `api` goes first.** If the apex moved first, the web app would be live on
+> haulcheck.co.uk while still compiled against an API the browser cannot reach —
+> a site that loads and then fails at login. Proving `api` first means the last
+> change is the only visible one.
+
+**Rollback:** restore the two `A` records and the `www` CNAME from the table
+above. At a 300-second TTL this takes effect in minutes.
+
+**Afterwards:** ask the client to shut down the old Emergent deployment. Leaving
+it running means two live copies of a compliance product against two separate
+databases, and nobody will work out quickly which one a given record is in.
+
+### Optional: turn on Google sign-in
+
+Now possible, because the web app and the API share `haulcheck.co.uk`.
+
+- Google Cloud Console → **APIs & Services** → **Credentials** → **Create OAuth
+  client ID** → **Web application**.
+- Authorised redirect URI, exactly: `https://haulcheck.co.uk/auth/google/callback`
+- Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` on `haulcheck-api`.
+- The button appears on the login page by itself. It stays hidden while those two
+  are unset, so nobody sees a broken control in the meantime.
+
+> **Why this needed the domain.** It relies on a session cookie marked
+> `SameSite=None`, which Safari and other privacy-focused browsers block between
+> two unrelated domains. `haulcheck.co.uk` and `api.haulcheck.co.uk` share a
+> registrable domain, so the cookie is same-site and every browser accepts it.
 > Email/password sign-in never had this problem and works throughout.
 
 ---
@@ -388,8 +435,13 @@ When the client has customers:
 |---|---|---|
 | Render Starter | $7/mo | No sleeping. The 07:00 job runs on its own; keep the cron as a backstop |
 | Atlas M10 | ~$9/mo | Automated backups, more room |
-| Vercel Pro | $20/mo | Required for commercial use |
 | Resend | $20/mo | 50,000 emails |
+
+> The web app is not on this list, and that is worth knowing rather than
+> assuming: Render's static sites have no commercial-use restriction and no
+> paid tier this app would ever need. That half stays free permanently. Several
+> of the obvious alternatives charge around $20/month the moment a product is
+> commercial, so it is the sort of line that is easy to be surprised by later.
 
 **Back up the database before you have customers, not after.** Atlas M0 has no
 automated backups:
@@ -406,9 +458,11 @@ mongodump --uri="$MONGO_URL" --out=backup-$(date +%F)
 |---|---|
 | Build fails during `pip install` | Check `requirements.txt` was not reverted to the Emergent version — that one fetches a package from a URL that only resolves inside their image |
 | App will not start, no useful error | `MONGO_URL`, `DB_NAME` or `JWT_SECRET` missing. All three are read as the app loads, so it cannot start without them |
-| `CORS_ORIGINS must list explicit origins` | Expected. Set it to the Vercel URL (step 6) |
+| `CORS_ORIGINS must list explicit origins` | Expected. Set it to the web app URL (step 6) |
 | Database connection fails, wrong-password look | The `mongodb+srv://` form needs a DNS lookup. Confirm `dnspython` is in `requirements.txt`, and that a `@` or `/` in the password is percent-encoded |
-| Every browser request blocked by CORS | `CORS_ORIGINS` does not match the Vercel URL exactly — scheme, no trailing slash |
+| Every browser request blocked by CORS | `CORS_ORIGINS` does not match the web app URL exactly — scheme, no trailing slash |
+| Deep links 404 on refresh, the root works | The rewrite in `render.yaml` is missing or is not the last route |
+| Site works for you, intermittently fails for others | A stray `AAAA` record. Render is IPv4-only |
 | Uploads fail | `/api/health` shows `"storage"`. `"null"` means the `S3_*` variables did not take. `SignatureDoesNotMatch` in the log means a wrong key or a region other than `auto` |
 | Login works, everything else 401 | `REACT_APP_BACKEND_URL` has a trailing `/api`. Remove it and redeploy the frontend |
 | One user's actions rate-limit everyone | `TRUST_PROXY_HEADERS` is not `1`. Render terminates TLS at a proxy, so every request looks like one IP |
