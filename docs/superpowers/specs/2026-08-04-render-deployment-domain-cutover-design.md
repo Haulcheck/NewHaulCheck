@@ -147,12 +147,21 @@ security headers, cache headers — move into `render.yaml`. Leaving the file in
 place would leave a second, silently ignored deployment configuration for the next
 person to be misled by.
 
-### 4.3 Point the site's own metadata at the real domain
+### 4.3 Fill in the production domain
 
-`frontend/public/index.html:19` still declares a canonical URL of
-`https://transport-verify-3.emergent.host/`, and `robots.txt` and `sitemap.xml`
-match. These currently tell search engines the application lives on Emergent.
-Set all three to `https://haulcheck.co.uk`.
+The Emergent URLs are already gone from this branch — the 2026-07-28 work removed
+them rather than replacing them, on the reasoning that a canonical pointing at the
+wrong host is worse than no canonical at all. What remains in
+`frontend/public/index.html`, `robots.txt` and `sitemap.xml` is three commented-out
+placeholders reading `https://app.example.com`, each with a note saying to complete
+it once the production domain exists.
+
+It exists. Fill all three in with `https://haulcheck.co.uk`, uncomment them, and
+add the two `<url>` entries to the sitemap.
+
+The guard test `backend/tests/test_no_third_party_frontend.py` already fails the
+build if any Emergent or PostHog host reappears in the bundle, so this change
+cannot regress that.
 
 ### 4.4 Rewrite `DEPLOYMENT.md` step 5
 
