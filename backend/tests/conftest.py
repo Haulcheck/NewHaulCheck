@@ -61,6 +61,7 @@ OFFLINE_TEST_MODULES = {
     "test_provider_decoupling",
     "test_no_third_party_frontend",
     "test_requirements",
+    "test_render_blueprint",
     "test_sigv4",
     # Its round-trip class is skipped unless the S3_* variables are set, so
     # without a bucket configured the module drives nothing over HTTP.

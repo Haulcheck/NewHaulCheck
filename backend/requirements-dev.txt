@@ -18,3 +18,8 @@ requests==2.32.3
 # tests/test_sigv4.py. It must never be imported by application code: botocore
 # is synchronous and would block the event loop from an async handler.
 botocore==1.34.162
+
+# Reads render.yaml in tests/test_render_blueprint.py. Dev only -- nothing the
+# server does at run time parses YAML, and putting it in requirements.txt would
+# add it to the production image for no reason.
+pyyaml==6.0.3

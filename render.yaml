@@ -64,3 +64,44 @@ services:
         sync: false
       - key: SENDER_EMAIL
         sync: false
+
+  # The web app. A static bundle on Render's CDN rather than a second container:
+  # it costs nothing, and it keeps loading while the free-tier API is asleep, so
+  # a visitor sees the app shell instead of a blank fifty-second wait.
+  - type: web
+    name: haulcheck-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: yarn install --frozen-lockfile && GENERATE_SOURCEMAP=false yarn build
+    staticPublishPath: ./build
+    routes:
+      # React Router owns the paths. Without this, opening /maintenance directly
+      # -- or refreshing it -- asks Render for a file that was never built.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      # The driver app photographs defects and scans onboarding QR codes, so the
+      # camera is needed. Nothing else is.
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(self), microphone=(), geolocation=()
+      # CRA fingerprints these filenames, so a changed file is a changed URL and
+      # this can be cached indefinitely.
+      - path: /static/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+    envVars:
+      # Compiled into the bundle at build time -- changing it needs a rebuild,
+      # not a restart. Set to https://api.haulcheck.co.uk once DNS is live.
+      - key: REACT_APP_BACKEND_URL
+        sync: false
