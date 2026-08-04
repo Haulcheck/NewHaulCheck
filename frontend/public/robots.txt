@@ -14,5 +14,4 @@ Disallow: /tacho
 Disallow: /accept-invite
 Disallow: /api/
 
-# Uncomment once the production domain is live:
-# Sitemap: https://app.example.com/sitemap.xml
+Sitemap: https://haulcheck.co.uk/sitemap.xml

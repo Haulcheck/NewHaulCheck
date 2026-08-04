@@ -1,16 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  The sitemap protocol requires absolute URLs, so this cannot be completed until
-  the production domain exists. It previously listed a host on the platform this
-  deployment has moved off, which told search engines the app lived there.
-
-  When the domain is live, add the two entries below and uncomment the Sitemap
-  line in robots.txt:
-
-    <url><loc>https://app.example.com/</loc>
-         <changefreq>weekly</changefreq><priority>1.0</priority></url>
-    <url><loc>https://app.example.com/login</loc>
-         <changefreq>monthly</changefreq><priority>0.8</priority></url>
+  Only the two public routes. Everything else is behind authentication and is
+  disallowed in robots.txt; listing those paths would invite crawlers to URLs
+  that return nothing but a login redirect.
 -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url><loc>https://haulcheck.co.uk/</loc>
+         <changefreq>weekly</changefreq><priority>1.0</priority></url>
+    <url><loc>https://haulcheck.co.uk/login</loc>
+         <changefreq>monthly</changefreq><priority>0.8</priority></url>
 </urlset>

@@ -64,6 +64,30 @@ def test_no_third_party_host_in_the_frontend():
     )
 
 
+PRODUCTION_ORIGIN = "https://haulcheck.co.uk"
+
+
+def test_production_domain_is_filled_in():
+    """The canonical, sitemap and robots entries name the real domain.
+
+    These three shipped as commented placeholders because a canonical pointing
+    at the wrong host tells search engines the app lives somewhere else. That
+    reasoning cuts both ways: once the domain exists, leaving them commented
+    means the app never claims its own address.
+    """
+    missing = []
+    for name in ("index.html", "robots.txt", "sitemap.xml"):
+        source = (FRONTEND / "public" / name).read_text(encoding="utf-8")
+        if PRODUCTION_ORIGIN not in source:
+            missing.append(name)
+        if "app.example.com" in source:
+            missing.append(f"{name} (still has the example.com placeholder)")
+
+    assert not missing, (
+        "Production domain not set in: " + ", ".join(missing)
+    )
+
+
 def test_emergent_platform_files_are_gone():
     leftovers = [p.name for p in (REPO / ".emergent", REPO / ".gitconfig") if p.exists()]
     assert not leftovers, (
