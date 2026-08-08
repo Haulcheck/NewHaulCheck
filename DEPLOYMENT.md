@@ -139,6 +139,21 @@ audit packs.
    [`render.yaml`](render.yaml) and proposes **two** services: `haulcheck-api`
    and `haulcheck-web`. Both come from the one file — the web app is set up in
    step 5, not separately.
+
+   > **Check that pushing actually deploys.** Render can clone a public
+   > repository without any special permission, so the first build succeeds
+   > whether or not this is set up — but it only receives *push* events if its
+   > GitHub App is installed on the account that **owns** the repository, with
+   > that repository selected. Get this wrong and everything looks fine until
+   > you notice your changes never reach the site.
+   >
+   > Install it at <https://github.com/apps/render/installations/new>. Only an
+   > owner of that GitHub account can do it, so if the repository belongs to
+   > someone else, they have to click it themselves.
+   >
+   > Verify by pushing a commit and watching the service's Events tab. A working
+   > setup shows a deploy triggered by the push. If the only entries are
+   > "Triggered by you", it is not connected and every deploy will need a click.
 3. It will ask for the values marked `sync: false`. Fill in:
 
    | Variable | Value |
