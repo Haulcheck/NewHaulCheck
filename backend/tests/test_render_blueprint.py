@@ -4,6 +4,7 @@ render.yaml is what Render reads to build both halves of the app. A second
 config file that Render ignores -- vercel.json was one -- is worse than no
 config at all, because it looks authoritative and silently is not.
 """
+import json
 from pathlib import Path
 
 import yaml
@@ -55,6 +56,31 @@ def test_backend_url_is_a_build_time_variable():
 def test_no_competing_deployment_config():
     assert not (REPO / "frontend" / "vercel.json").exists(), (
         "vercel.json is not read by Render. Its contents belong in render.yaml."
+    )
+
+
+def test_node_version_is_pinned_and_matches_package_json():
+    """Render defaults to Node 24; react-scripts 5 is not built for it.
+
+    package.json declares engines.node, and Render does read it -- but only
+    when it runs version detection, which a cache-restoring rebuild skipped.
+    NODE_VERSION outranks every other source, so it works regardless. The two
+    must agree: yarn enforces engines, so a NODE_VERSION outside that range
+    fails the install rather than overriding it.
+    """
+    envs = {e["key"]: e for e in _services()["haulcheck-web"]["envVars"]}
+    assert "NODE_VERSION" in envs, (
+        "Without this, a rebuild can silently land on Render's default Node."
+    )
+    pinned = str(envs["NODE_VERSION"]["value"])
+
+    package = json.loads((REPO / "frontend" / "package.json").read_text(encoding="utf-8"))
+    declared = package["engines"]["node"]
+
+    major = pinned.split(".")[0]
+    assert declared.startswith(major), (
+        f"NODE_VERSION is {pinned} but package.json engines.node is "
+        f"{declared!r}. yarn enforces engines and would reject the install."
     )
 
 

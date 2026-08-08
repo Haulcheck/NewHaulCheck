@@ -114,6 +114,18 @@ services:
         name: Cache-Control
         value: public, max-age=31536000, immutable
     envVars:
+      # Render's default is Node 24, and react-scripts 5 is not built for it.
+      # package.json already declares engines.node "20.x", and Render does read
+      # it -- but only when it runs version detection at all. On a rebuild that
+      # restored from cache it skipped detection entirely, went straight to
+      # `yarn install` on Node 24, and yarn refused the engines range. The build
+      # failed on a repo that had built fine an hour earlier.
+      #
+      # NODE_VERSION is the highest-precedence source, ahead of .node-version,
+      # .nvmrc and package.json, so it does not depend on detection running.
+      # Keep it equal to engines.node; they disagree at your peril.
+      - key: NODE_VERSION
+        value: "20.20.2"
       # Compiled into the bundle at build time -- changing it needs a rebuild,
       # not a restart. Set to https://api.haulcheck.co.uk once DNS is live.
       - key: REACT_APP_BACKEND_URL
