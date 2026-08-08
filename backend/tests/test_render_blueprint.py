@@ -127,7 +127,13 @@ def test_guide_does_not_send_the_operator_to_vercel():
 
 def test_guide_names_the_deploy_repository():
     text = GUIDE.read_text(encoding="utf-8")
-    assert "Furqan-10/NewHaulCheck" in text
-    assert "Furqan-10/OUR-Haul" not in text, (
-        "OUR-Haul is not the deploy repository. Render builds from NewHaulCheck."
-    )
+    assert "Haulcheck/NewHaulCheck" in text
+    # Both predecessors. OUR-Haul was the original personal repo; Furqan-10 was
+    # where NewHaulCheck lived before it moved into the organisation. GitHub
+    # redirects the old paths, so a stale one keeps working and never announces
+    # itself -- which is exactly why it needs a test rather than a proofread.
+    for stale in ("Furqan-10/OUR-Haul", "Furqan-10/NewHaulCheck"):
+        assert stale not in text, (
+            f"{stale} is not the deploy repository. Render builds from "
+            "Haulcheck/NewHaulCheck."
+        )

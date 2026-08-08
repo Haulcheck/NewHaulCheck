@@ -55,7 +55,7 @@ and you want them to own it.
 Plus **cron-job.org** (<https://console.cron-job.org/signup>) at the end.
 
 You also need the code on GitHub. It already is:
-`https://github.com/Furqan-10/NewHaulCheck`.
+`https://github.com/Haulcheck/NewHaulCheck`.
 
 Keep a scratch file open. You will collect six values as you go, and step 4
 needs all of them at once.
@@ -135,7 +135,7 @@ audit packs.
 ## Step 4 — The API
 
 1. Render dashboard → **New** → **Blueprint**.
-2. Connect the `Furqan-10/NewHaulCheck` repository. Render reads
+2. Connect the `Haulcheck/NewHaulCheck` repository. Render reads
    [`render.yaml`](render.yaml) and proposes **two** services: `haulcheck-api`
    and `haulcheck-web`. Both come from the one file — the web app is set up in
    step 5, not separately.
