@@ -729,3 +729,43 @@ mongodump --uri="$MONGO_URL" --out=backup-$(date +%F)
 | Deep links 404 on refresh, root works | The rewrite in Task 1 is missing or not last |
 | First request after a quiet period takes ~50s | Free tier sleeping. Expected. $7/month removes it |
 | Photo upload fails, everything else works | R2 credentials or bucket CORS. Check `/api/health` reports `storage: s3` |
+| Deploy stuck "in progress", `/api/health` 500s | `STORAGE_PROVIDER=s3` without the four `S3_*` values. Fixed in `be55977`; the error now names them |
+| A push to `main` produces no deploy | The Render GitHub App is not installed on the repo owner's account. A public repo can be cloned without it, but push events need it |
+
+---
+
+## What actually happened — 2026-08-09
+
+Tasks 1–7 are done. Recorded here because two things did not go as the plan
+assumed, and both are worth knowing before the domain moves.
+
+**Deployed and verified.** Atlas M0 (Frankfurt), both Render services live from
+`Furqan-10/NewHaulCheck`. Database round-trip 1.3 ms — Render and Atlas are in
+the same region. Verified end to end: register, login, `/auth/me`, `/vehicles`,
+`/dashboard`, the SPA rewrite on `/maintenance` and `/driver`, all four security
+headers, CORS from the web origin, the 12-character password policy, and the
+cron endpoint rejecting a request with no secret.
+
+Deferred deliberately: R2 storage, Resend email, cron schedule, Google sign-in.
+So uploads, invitations and password resets do not work yet. That is the
+`storage: null, email: null` state reported by `/api/health`.
+
+**1. The blueprint shipped a configuration that could not work.** `render.yaml`
+pinned `STORAGE_PROVIDER=s3` while the four `S3_*` values were `sync: false`, so
+the first deploy built, booted, then failed its health check on a bare
+`KeyError` and hung. Setting `null` in the dashboard fixed it but left the
+service one blueprint sync away from breaking again. Fixed in `be55977` — the
+switch is `sync: false`, and selecting `s3` without credentials now raises
+naming every missing variable.
+
+Worth noting the plan told the operator to override this by hand, and the
+override was still missed on the first run. An instruction that has to be
+remembered is not a fix; the default has to be the safe one.
+
+**2. Auto-deploy on push does not work yet, and it is the point of the exercise.**
+Both services have `autoDeploy: yes`, but every deploy so far was triggered by
+the blueprint sync or the API — none by a push. Render clones the repo fine
+because it is public, but push events need the Render GitHub App installed on
+`Furqan-10`, and the Render account is connected to a different GitHub user.
+**Furqan has to approve that installation.** Until then, deploys work but must
+be triggered manually, which is the original problem in a new place.
