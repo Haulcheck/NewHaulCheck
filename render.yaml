@@ -33,8 +33,21 @@ services:
       # single bucket, so one noisy client locks out everyone else.
       - key: TRUST_PROXY_HEADERS
         value: "1"
+      # Deliberately not pinned to `s3` here. The four S3_* values below are
+      # sync: false, so they do not exist on a first deploy -- and hardcoding
+      # `s3` alongside them meant the blueprint shipped a configuration that
+      # cannot work: the service builds, boots, then fails its health check on
+      # a missing key and never goes live.
+      #
+      # Worse, once an operator sets this to `null` in the dashboard to get the
+      # app up, the next blueprint sync silently overwrites it back to `s3` and
+      # breaks production again.
+      #
+      # sync: false leaves it to the dashboard, which is where it belongs: unset
+      # means no uploads (the app runs), and `s3` once R2 is configured. Neither
+      # value is clobbered by a re-sync.
       - key: STORAGE_PROVIDER
-        value: s3
+        sync: false
       # R2 accepts only "auto".
       - key: S3_REGION
         value: auto

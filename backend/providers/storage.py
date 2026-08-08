@@ -217,6 +217,25 @@ def get_provider() -> StorageProvider:
     emergent_key = os.environ.get("EMERGENT_LLM_KEY", "").strip()
 
     if choice == "s3":
+        # os.environ[...] here raised a bare KeyError naming one variable, from
+        # inside whichever caller touched storage first -- in practice the
+        # health endpoint, so the symptom was a 500 on /api/health and a deploy
+        # that never went live, with nothing saying "storage is not configured".
+        #
+        # .get() rather than `in`: a deploy dashboard set to an empty string is
+        # the same mistake as forgetting the variable, and reads the same way.
+        required = ("S3_BUCKET", "S3_ENDPOINT", "S3_ACCESS_KEY", "S3_SECRET_KEY")
+        missing = [k for k in required if not (os.environ.get(k) or "").strip()]
+        if missing:
+            raise RuntimeError(
+                "STORAGE_PROVIDER=s3 but these are unset or empty: "
+                + ", ".join(missing) + ".\n"
+                "Either set them, or set STORAGE_PROVIDER=null to run without "
+                "file uploads.\n"
+                "This refuses to start rather than quietly falling back: in a "
+                "compliance product, silently not storing defect photos and "
+                "signed walkaround sheets is worse than not starting."
+            )
         _provider = S3Storage(
             bucket=os.environ["S3_BUCKET"], endpoint=os.environ["S3_ENDPOINT"],
             access_key=os.environ["S3_ACCESS_KEY"], secret_key=os.environ["S3_SECRET_KEY"],

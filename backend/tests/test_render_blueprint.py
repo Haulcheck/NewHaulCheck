@@ -58,6 +58,30 @@ def test_no_competing_deployment_config():
     )
 
 
+def test_storage_provider_is_not_pinned_in_the_blueprint():
+    """A blueprint sync must not be able to break a working deployment.
+
+    STORAGE_PROVIDER was `value: s3` while the four S3_* values it needs were
+    sync: false. A first deploy therefore built, booted, and then failed its
+    health check on a missing key. Setting it to `null` in the dashboard fixed
+    that -- until the next blueprint sync overwrote it back to `s3`.
+    """
+    envs = {e["key"]: e for e in _services()["haulcheck-api"]["envVars"]}
+    sp = envs["STORAGE_PROVIDER"]
+    assert "value" not in sp, (
+        "STORAGE_PROVIDER must not carry a hardcoded value: a re-sync would "
+        "overwrite whatever the dashboard is set to and break production."
+    )
+    assert sp.get("sync") is False
+
+
+def test_s3_settings_left_to_the_dashboard():
+    """The credentials and the switch that needs them travel together."""
+    envs = {e["key"]: e for e in _services()["haulcheck-api"]["envVars"]}
+    for key in ("S3_BUCKET", "S3_ENDPOINT", "S3_ACCESS_KEY", "S3_SECRET_KEY"):
+        assert envs[key].get("sync") is False, f"{key} must not be committed"
+
+
 GUIDE = REPO / "DEPLOYMENT.md"
 
 
