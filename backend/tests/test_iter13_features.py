@@ -2,7 +2,7 @@
 Iteration 13 tests: Fuel & Emissions CRUD + summary (MPG/CO2), Calendar Add PMI recurring
 projection, Documents regenerate with version stamp, Documents link_url field.
 
-Login: manager@haulcheck.co.uk / Test1234!
+Login: manager@haulcheck.co.uk / Seed-Fleet-2026!
 Cleans up all TEST_ prefixed records via API after each test class.
 """
 import os

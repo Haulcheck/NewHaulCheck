@@ -22,7 +22,7 @@ def _mongo():
     return MongoClient(MONGO_URL)[DB_NAME]
 
 
-def _register(email, password="Test1234!", name="Owner"):
+def _register(email, password="Seed-Fleet-2026!", name="Owner"):
     r = requests.post(f"{API}/auth/register", json={"email": email, "password": password, "name": name})
     if r.status_code == 400:
         r = requests.post(f"{API}/auth/login", json={"email": email, "password": password})
@@ -52,7 +52,13 @@ class TestViewerRole:
     def test_a_invite_viewer_and_accept(self, owner):
         h = {"Authorization": f"Bearer {owner['token']}"}
         viewer_email = f"test_viewer_{_run}@haulcheck.co.uk"
-        r = requests.post(f"{API}/invitations", json={"email": viewer_email, "role": "viewer", "base_url": BASE}, headers=h)
+        # kind="org" is required and is not the default. Without it the invite is
+        # a "referral", which deliberately gives the invitee a separate
+        # organisation of their own as owner -- so the role above is ignored and
+        # nothing is shared. This test is about joining the inviter's org.
+        r = requests.post(f"{API}/invitations",
+                          json={"email": viewer_email, "role": "viewer",
+                                "kind": "org", "base_url": BASE}, headers=h)
         assert r.status_code == 200, r.text
         inv = _mongo().invitations.find_one({"email": viewer_email})
         assert inv and inv["role"] == "viewer", f"invite not stored as viewer: {inv}"
@@ -60,10 +66,15 @@ class TestViewerRole:
         rv = requests.get(f"{API}/invitations/verify", params={"token": token})
         assert rv.status_code == 200
         ra = requests.post(f"{API}/auth/accept-invite",
-                           json={"token": token, "name": "Viewer User", "password": "Test1234!"})
+                           json={"token": token, "name": "Viewer User", "password": "Seed-Fleet-2026!"})
         assert ra.status_code == 200, ra.text
         data = ra.json()
-        assert data["user"]["role"] == "viewer"
+        # Two different things are called "role". `role` is the account type --
+        # manager or driver -- and accept-invite always issues "manager" because
+        # the invitee is not a driver. The permission that matters is `org_role`,
+        # which the org layer added after this test was written.
+        assert data["user"]["role"] == "manager"
+        assert data["user"]["org_role"] == "viewer"
         state["viewer_token"] = data["token"]
         state["viewer_email"] = viewer_email
 

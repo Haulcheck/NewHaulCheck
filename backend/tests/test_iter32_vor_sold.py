@@ -37,7 +37,7 @@ def _register(email, password, role="manager"):
 @pytest.fixture(scope="module")
 def token():
     email = f"iter32_{uuid.uuid4().hex[:8]}@haulcheck.co.uk"
-    return _register(email, "Test1234!")
+    return _register(email, "Seed-Fleet-2026!")
 
 
 @pytest.fixture
@@ -197,7 +197,7 @@ class TestViewerGuard:
         # Create a viewer sub-account via invite or role change endpoint (varies)
         # Simplified: create separate user account and cast to viewer via update-role if possible.
         email = f"viewer32_{uuid.uuid4().hex[:6]}@haulcheck.co.uk"
-        vtoken = _register(email, "Test1234!")
+        vtoken = _register(email, "Seed-Fleet-2026!")
         # Try to set role to viewer via /api/auth/me PATCH or similar
         headers = {"Authorization": f"Bearer {vtoken}", "Content-Type": "application/json"}
         # Try admin endpoint (may not exist) — fallback: directly test — we don't have role-change route,

@@ -7,7 +7,7 @@ BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://transport-verify-3.p
 API = f"{BASE_URL}/api"
 
 EMAIL = "manager@haulcheck.co.uk"
-PWD = "Test1234!"
+PWD = "Seed-Fleet-2026!"
 
 
 @pytest.fixture(scope="module")
@@ -142,9 +142,13 @@ class TestRecordsRetention:
         assert "total_approaching" in b
         assert "categories" in b
         assert isinstance(b["categories"], list)
-        assert len(b["categories"]) == 4
+        # Not an exact count: iteration 32 added "Off-road / sold vehicles", and
+        # pinning the number here means every new category breaks a test that was
+        # never about the number. The four below are what this test is asserting;
+        # the fifth has its own test in test_iter32_vor_sold.py.
+        assert len(b["categories"]) >= 4
         labels = [c["label"] for c in b["categories"]]
-        # expected 4 categories
+        # the four categories this test covers
         for expected in ("PMI", "walkaround", "defect", "achograph"):
             assert any(expected.lower() in lb.lower() for lb in labels), f"missing {expected} in {labels}"
         for c in b["categories"]:
